@@ -1,0 +1,12 @@
+{
+  "name": "bridgelabz-event-management",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n client,server -c blue,green \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

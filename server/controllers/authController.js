@@ -37,20 +37,42 @@ const register = async (req, res) => {
     throw new ApiError(422, 'Validation failed', errors.array());
   }
 
-  const { name, email, password } = req.body;
+  const { name, email, password, role = 'attendee' } = req.body;
 
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) throw new ApiError(409, 'An account with this email already exists');
 
-  const user = await User.create({ name, email, password, isVerified: true });
+  const userFields = { name, email, password, isVerified: true, role };
 
-  const accessToken = await issueTokens(user, res);
+  if (role === 'organizer') {
+    userFields.approvalStatus = 'pending';
+    userFields.approved = false;
+    userFields.organizationName = req.body.organizationName || '';
+    userFields.phone = req.body.phone || '';
+    userFields.city = req.body.city || '';
+  }
+
+  const user = await User.create(userFields);
+
+  // Notify admin when organizer registers
+  if (role === 'organizer') {
+    try {
+      const { sendOrganizerRequestToAdmin } = require('../services/emailService');
+      await sendOrganizerRequestToAdmin({
+        organizer: { name, email, organizationName: req.body.organizationName, phone: req.body.phone, city: req.body.city },
+      });
+    } catch (err) {
+      console.error('Failed to send organizer registration email to admin:', err.message);
+    }
+  }
 
   res.status(201).json(
     new ApiResponse(201, {
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
-      accessToken,
-    }, 'Registration successful')
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, approvalStatus: user.approvalStatus, approved: user.approved },
+      message: role === 'organizer'
+        ? 'Registration successful. Your account is pending admin approval.'
+        : 'Registration successful',
+    }, role === 'organizer' ? 'Organizer registration submitted for approval' : 'Registration successful')
   );
 };
 
@@ -70,11 +92,18 @@ const login = async (req, res) => {
   const isMatch = await user.comparePassword(password);
   if (!isMatch) throw new ApiError(401, 'Invalid email or password');
 
+  // Check organizer approval
+  if (user.role === 'organizer' && !user.approved) {
+    throw new ApiError(403, user.approvalStatus === 'rejected'
+      ? `Your organizer account has been rejected. Reason: ${user.rejectedReason || 'No reason provided.'}`
+      : 'Your organizer account is pending admin approval. Please wait for an administrator to approve your account.');
+  }
+
   const accessToken = await issueTokens(user, res);
 
   res.json(
     new ApiResponse(200, {
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, approvalStatus: user.approvalStatus, approved: user.approved },
       accessToken,
     }, 'Login successful')
   );
@@ -127,7 +156,22 @@ const googleCallback = async (req, res) => {
   const user = req.user;
   if (!user) throw new ApiError(401, 'Google authentication failed');
 
-  // Validate CLIENT_URL is set
+  // Check organizer approval (only if role was pre-set to organizer)
+  if (user.role === 'organizer' && !user.approved) {
+    // Send notification email to admin
+    try {
+      const { sendOrganizerRequestToAdmin } = require('../services/emailService');
+      await sendOrganizerRequestToAdmin({
+        organizer: { name: user.name, email: user.email, organizationName: user.organizationName, phone: user.phone, city: user.city },
+      });
+    } catch (err) {
+      console.error('Failed to send organizer registration email to admin:', err.message);
+    }
+
+    if (!process.env.CLIENT_URL) throw new ApiError(500, 'Server configuration error');
+    return res.redirect(`${process.env.CLIENT_URL}/pending-approval`);
+  }
+
   if (!process.env.CLIENT_URL) {
     console.error('❌ CLIENT_URL environment variable is not set');
     throw new ApiError(500, 'Server configuration error');
@@ -135,8 +179,9 @@ const googleCallback = async (req, res) => {
 
   const accessToken = await issueTokens(user, res);
 
-  // ✅ Redirect to production frontend with token
-  // Example: https://bridgelabz-event-management-ticket-7f3p.onrender.com/auth/callback?token=...
+  // Clear the oauth_role cookie
+  res.clearCookie('oauth_role');
+
   const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?token=${accessToken}`;
   console.log(`✅ Google OAuth successful. Redirecting to: ${redirectUrl.split('?')[0]}`);
   res.redirect(redirectUrl);

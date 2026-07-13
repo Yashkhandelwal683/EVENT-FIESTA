@@ -7,6 +7,10 @@ const { Server: SocketServer } = require('socket.io');
 const app = require('./app');
 const connectDB = require('./config/db');
 const { connectRedis } = require('./config/redis');
+const setupSocketHandlers = require('./socket/handler');
+const { startScheduler } = require('./jobs/scheduler');
+const { runAnalyticsJob } = require('./jobs/analyticsJob');
+const AnalyticsSnapshot = require('./models/AnalyticsSnapshot');
 
 const PORT = process.env.PORT || 5000;
 
@@ -22,18 +26,7 @@ const io = new SocketServer(httpServer, {
   },
 });
 
-io.on('connection', (socket) => {
-  console.log(`🔌 Socket connected: ${socket.id}`);
-
-  socket.on('joinEvent', (eventId) => {
-    socket.join(`event:${eventId}`);
-    console.log(`Socket ${socket.id} joined event:${eventId}`);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`🔌 Socket disconnected: ${socket.id}`);
-  });
-});
+setupSocketHandlers(io);
 
 // attach io
 app.set('io', io);
@@ -47,6 +40,16 @@ const start = async () => {
   } catch (err) {
     console.log("Redis not connected (optional)");
   }
+
+  startScheduler();
+
+  // Clear stale snapshots on startup to force fresh data
+  try {
+    const stale = await AnalyticsSnapshot.deleteMany({});
+    if (stale.deletedCount > 0) console.log(`🗑️  Cleared ${stale.deletedCount} stale analytics snapshots`);
+  } catch {}
+
+  runAnalyticsJob().catch(() => {});
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);

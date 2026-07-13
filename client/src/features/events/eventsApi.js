@@ -1,36 +1,35 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createBaseQuery } from '../../api/baseQuery';
 
 const BASE = import.meta.env.VITE_API_URL;
 
 export const eventsApi = createApi({
   reducerPath: 'eventsApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${BASE}/api`,
-    credentials: 'include',
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.accessToken;
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    },
-  }),
-  tagTypes: ['Event'],
+  baseQuery: createBaseQuery({ baseUrl: `${BASE}/api` }),
+  tagTypes: ['Event', 'Registration'],
   endpoints: (build) => ({
     getEvents: build.query({
-      query: (params = {}) => ({
-        url: '/events',
-        params,
-      }),
+      query: (params = {}) => ({ url: '/events', params }),
       transformResponse: (res) => res.data || res,
+      keepUnusedDataFor: 300,
+      providesTags: ['Event'],
+    }),
+    getPublicEvents: build.query({
+      query: (params = {}) => ({ url: '/events/public', params }),
+      transformResponse: (res) => res.data || res,
+      keepUnusedDataFor: 600,
       providesTags: ['Event'],
     }),
     getFeaturedEvents: build.query({
       query: () => '/events/featured',
       transformResponse: (res) => res.data || res,
+      keepUnusedDataFor: 1800,
       providesTags: ['Event'],
     }),
     getEventById: build.query({
       query: (id) => `/events/${id}`,
       transformResponse: (res) => res.data || res,
+      keepUnusedDataFor: 300,
       providesTags: (_r, _e, id) => [{ type: 'Event', id }],
     }),
     createEvent: build.mutation({
@@ -56,14 +55,34 @@ export const eventsApi = createApi({
       transformResponse: (res) => res.data || res,
       invalidatesTags: ['Event'],
     }),
+    registerForEvent: build.mutation({
+      query: ({ id, data }) => ({
+        url: `/events/${id}/register`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (res) => res.data || res,
+      invalidatesTags: ['Registration', 'Event'],
+    }),
+    getEventRegistrations: build.query({
+      query: ({ id, params }) => ({
+        url: `/events/${id}/registrations`,
+        params,
+      }),
+      transformResponse: (res) => res.data || res,
+      providesTags: (_r, _e, { id }) => [{ type: 'Registration', id }],
+    }),
   }),
 });
 
 export const {
   useGetEventsQuery,
+  useGetPublicEventsQuery,
   useGetFeaturedEventsQuery,
   useGetEventByIdQuery,
   useCreateEventMutation,
   useUpdateEventMutation,
   useDeleteEventMutation,
+  useRegisterForEventMutation,
+  useGetEventRegistrationsQuery,
 } = eventsApi;

@@ -1,286 +1,300 @@
-# 🎟️ Event Management & Ticket Booking System
+# Event Fiesta
 
-<div align="center">
+A full-stack event management and ticket booking platform built with the MERN stack. Organizers can create events, manage ticket tiers, and scan QR codes at venues. Customers can browse events, book tickets, and receive digital QR-coded tickets. Admins get a complete dashboard for platform oversight.
 
-![MERN Stack](https://img.shields.io/badge/Stack-MERN-61DAFB?style=for-the-badge&logo=react)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
-![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+## Features
 
-A full-stack web application for managing events, ticket sales, and booking operations — built with the MERN stack.
+### For Customers
+- Browse and search events with filters (category, city, date)
+- Multi-tier ticket selection (VIP, General, Early Bird)
+- Secure checkout with Razorpay payment integration
+- QR-coded digital tickets with PDF download
+- Booking management and cancellation requests
+- Wishlist functionality
 
-*B.Tech CSE 3rd Year Project — GLA University, Mathura*
+### For Organizers
+- Create and manage events with image uploads (Cloudinary)
+- Define ticket tiers with pricing and quantity limits
+- Live QR scanner for venue check-in
+- Revenue tracking and analytics dashboard
+- Attendee management and CSV/Excel export
+- Calendar view and report generation
 
-</div>
+### For Admins
+- Platform-wide user, event, and booking management
+- Organizer approval workflow
+- Revenue and commission tracking
+- Analytics with charts (revenue, bookings, user growth)
+- Ticket request approval/rejection
+- Cancellation and refund management
 
----
+### Technical
+- Real-time ticket availability updates via Socket.IO
+- JWT authentication with access/refresh token flow
+- Role-based access control (attendee, organizer, admin)
+- Rate limiting and security headers (Helmet)
+- Google OAuth integration
+- Automated email notifications (Nodemailer)
 
-## 📋 Table of Contents
+## Tech Stack
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [System Architecture](#-system-architecture)
-- [Getting Started](#-getting-started)
-- [API Endpoints](#-api-endpoints)
-- [Project Structure](#-project-structure)
-- [User Roles](#-user-roles)
-- [Team](#-team)
+### Frontend (`client/`)
+| Technology | Purpose |
+|------------|---------|
+| React 19 | UI framework |
+| Vite | Build tool and dev server |
+| Tailwind CSS | Styling |
+| Redux Toolkit + RTK Query | State management and API calls |
+| React Router v7 | Client-side routing |
+| Socket.IO Client | Real-time updates |
+| Axios | HTTP client |
+| React Hook Form + Zod | Form validation |
+| Framer Motion | Animations |
+| Recharts | Charts and analytics |
+| jsPDF | PDF ticket generation |
+| html5-qrcode | QR code scanning |
 
----
+### Backend (`server/`)
+| Technology | Purpose |
+|------------|---------|
+| Node.js | Runtime |
+| Express.js | REST API framework |
+| MongoDB + Mongoose | Database and ODM |
+| JWT | Authentication |
+| Passport.js | Google OAuth |
+| Socket.IO | Real-time communication |
+| Razorpay | Payment processing |
+| Cloudinary | Image storage |
+| Nodemailer | Email service |
+| QRCode | QR code generation |
+| PDFKit | PDF generation |
+| Helmet | Security headers |
+| express-rate-limit | API rate limiting |
 
-## 🌐 Overview
-
-Traditional event management relies on manual registration and physical ticket distribution — which is slow, error-prone, and hard to scale. This project solves that by providing a centralized digital platform where:
-
-- **Organizers** can create and manage events with multiple ticket categories
-- **Customers** can browse, filter, book tickets, and receive QR-coded digital tickets
-- **Admins** can oversee the entire platform — users, revenue, analytics, and bookings
-
----
-## 🌍 Live Demo
-
-🎟️ **Sample Event Page:**  
-https://bridgelabz-event-management-ticket-7f3p.onrender.com/
-
-## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 🎫 **Multi-Tier Tickets** | VIP, General, and Early Bird categories with individual pricing |
-| ⚡ **Real-Time Availability** | Atomic DB operations prevent double-booking or overselling |
-| 💳 **Razorpay Payments** | Secure payment with HMAC SHA256 webhook verification |
-| 📱 **QR Code Tickets** | Unique QR code generated per confirmed booking |
-| 🔐 **JWT Authentication** | Access & Refresh token flow with secure cookie handling |
-| 👥 **Role-Based Access** | Separate dashboards for Admin, Organizer, and Customer |
-| 📧 **Email Confirmation** | Automated HTML email with ticket details via Nodemailer |
-| 📊 **Admin Dashboard** | Revenue reports, user management, and booking analytics |
-| 🔍 **Search & Filter** | Browse events by category, date, location with pagination |
-| ✅ **QR Check-In** | Organizers scan QR codes at the venue for entry verification |
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **React.js** — Component-based UI with hooks
-- **React Router** — Client-side routing
-- **Axios** — HTTP requests to the backend API
-- **Tailwind CSS** — Utility-first styling
-
-### Backend
-- **Node.js** — JavaScript runtime
-- **Express.js** — REST API framework
-- **JWT** — Authentication with Access & Refresh tokens
-- **Nodemailer** — Automated email delivery
-- **qrcode** — QR code generation per booking
-- **Helmet.js** — HTTP security headers
-- **express-rate-limit** — API rate limiting
-
-### Database
-- **MongoDB Atlas** — Cloud NoSQL database
-- **Mongoose** — ODM for schema modeling
-
-### Payments
-- **Razorpay** — Payment gateway with order creation and webhook-based verification
-
----
-
-## 🏗️ System Architecture
+## Folder Structure
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Presentation Layer                  │
-│              React.js (Frontend SPA)                 │
-│   Event Browsing │ Booking Flow │ Admin Dashboard    │
-└──────────────────────┬──────────────────────────────┘
-                       │  REST API Calls
-┌──────────────────────▼──────────────────────────────┐
-│                 Application Layer                    │
-│           Node.js + Express.js (Backend)             │
-│  JWT Auth │ RBAC │ Razorpay │ QR Gen │ Nodemailer   │
-└──────────────────────┬──────────────────────────────┘
-                       │  Mongoose ODM
-┌──────────────────────▼──────────────────────────────┐
-│                    Data Layer                        │
-│                  MongoDB Atlas                       │
-│   Users │ Events │ Bookings │ Payments               │
-└─────────────────────────────────────────────────────┘
-```
-
-**Request Flow:**
-`User` → `React Frontend` → `Express API` → `Payment Verification` → `MongoDB` → `QR + Email` → `User`
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js >= 18.x
-- npm >= 9.x
-- MongoDB Atlas account
-- Razorpay account (for API keys)
-
-### Installation
-
-**1. Clone the repository**
-```bash
-git clone https://github.com/your-username/event-management-ticket-booking.git
-cd event-management-ticket-booking
-```
-
-**2. Install backend dependencies**
-```bash
-cd server
-npm install
-```
-
-**3. Install frontend dependencies**
-```bash
-cd ../client
-npm install
-```
-
-**4. Set up environment variables**
-
-Create a `.env` file in the `/server` directory (see [Environment Variables](#-environment-variables)).
-
-**5. Run the development servers**
-
-In `/server`:
-```bash
-npm run dev
-```
-
-In `/client`:
-```bash
-npm start
-```
-
-The frontend will run on `http://localhost:3000` and the backend on `http://localhost:5000`.
-
----
-
-> ⚠️ Never commit your `.env` file. It is already listed in `.gitignore`.
-
----
-
-## 📡 API Endpoints
-
-### Auth
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| POST | `/api/auth/register` | Register a new user | Public |
-| POST | `/api/auth/login` | Login and receive tokens | Public |
-| POST | `/api/auth/refresh` | Refresh access token | Public |
-| POST | `/api/auth/logout` | Logout and clear token | Private |
-
-### Events
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| GET | `/api/events` | Get all events (with filters) | Public |
-| GET | `/api/events/:id` | Get a single event | Public |
-| POST | `/api/events` | Create a new event | Organizer |
-| PUT | `/api/events/:id` | Update event details | Organizer |
-| DELETE | `/api/events/:id` | Delete an event | Admin/Organizer |
-
-### Bookings
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| POST | `/api/bookings` | Create a booking | Customer |
-| GET | `/api/bookings/my` | Get user's bookings | Customer |
-| GET | `/api/bookings/:id` | Get booking details | Private |
-| POST | `/api/bookings/checkin/:qr` | QR check-in at venue | Organizer |
-
-### Payments
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| POST | `/api/payments/order` | Create Razorpay order | Customer |
-| POST | `/api/payments/verify` | Verify payment signature | Customer |
-| POST | `/api/payments/webhook` | Razorpay webhook handler | System |
-
-### Admin
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| GET | `/api/admin/users` | Get all users | Admin |
-| GET | `/api/admin/revenue` | Revenue analytics | Admin |
-| GET | `/api/admin/bookings` | All booking records | Admin |
-| DELETE | `/api/admin/users/:id` | Remove a user | Admin |
-
----
-
-## 📁 Project Structure
-
-```
-event-management-ticket-booking/
-│
+EVENT-FIESTA/
 ├── client/                     # React frontend
-│   ├── public/
-│   └── src/
-│       ├── components/         # Reusable UI components
-│       ├── pages/              # Route-level page components
-│       ├── context/            # Auth & global state context
-│       ├── hooks/              # Custom React hooks
-│       ├── services/           # Axios API service calls
-│       └── utils/              # Helper functions
+│   ├── public/                 # Static assets
+│   ├── src/
+│   │   ├── api/                # Axios client config
+│   │   ├── app/                # Redux store
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── layout/         # Navbar, Footer, Sidebar
+│   │   │   ├── events/         # Event cards, filters, creation
+│   │   │   ├── bookings/       # Booking cards, QR modal
+│   │   │   ├── dashboard/      # Dashboard widgets
+│   │   │   ├── admin/          # Admin panel components
+│   │   │   ├── charts/         # Analytics charts
+│   │   │   └── ui/             # Button, Input, Modal, etc.
+│   │   ├── features/           # RTK Query APIs + Redux slices
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── layouts/            # Route layouts
+│   │   ├── pages/              # Route-level components
+│   │   │   ├── auth/           # Login, Register, OAuth callback
+│   │   │   ├── dashboard/      # Organizer dashboard pages
+│   │   │   ├── attendee/       # Attendee dashboard pages
+│   │   │   ├── organizer/      # Organizer management pages
+│   │   │   └── admin/          # Admin panel pages
+│   │   ├── store/              # Zustand stores
+│   │   └── utils/              # Helpers and validators
+│   ├── .env.example
+│   └── vite.config.js
 │
 ├── server/                     # Node.js + Express backend
-│   ├── config/                 # DB connection, env config
+│   ├── config/                 # DB, Redis, Passport, Cloudinary
 │   ├── controllers/            # Route handler logic
-│   ├── middleware/             # Auth, RBAC, error handling
+│   ├── middleware/              # Auth, error handling, rate limiting
 │   ├── models/                 # Mongoose schemas
-│   │   ├── User.js
-│   │   ├── Event.js
-│   │   ├── Booking.js
-│   │   └── Payment.js
-│   ├── routes/                 # Express route definitions
-│   ├── services/               # QR generation, email, payment
-│   ├── utils/                  # Validators, helpers
+│   ├── routes/                 # API route definitions
+│   ├── services/               # Email, QR, PDF, token services
+│   ├── socket/                 # Socket.IO handlers
+│   ├── jobs/                   # Scheduled tasks
+│   ├── utils/                  # ApiError, ApiResponse helpers
+│   ├── .env.example
 │   └── server.js               # Entry point
 │
+├── package.json                # Root scripts (dev, build, start)
 ├── .gitignore
 └── README.md
 ```
 
----
+## Getting Started
 
-## 👥 User Roles
+### Prerequisites
 
-### 🛡️ Admin
-- Full platform access
-- Manage all users, events, and bookings
-- View revenue reports and analytics
-- Remove events or suspend users
+- Node.js >= 20.x
+- npm >= 9.x
+- MongoDB Atlas account (or local MongoDB)
+- Razorpay account
+- Cloudinary account
+- Google Cloud Console project (for OAuth)
 
-### 🎪 Organizer
-- Create and manage their own events
-- Set ticket tiers (VIP, General, Early Bird) with pricing
-- Scan QR codes for check-in at the venue
-- View attendance and booking stats for their events
+### Installation
 
-### 🙋 Customer
-- Browse and search events
-- Book tickets and make secure payments
-- Receive QR-coded tickets via email
-- View and manage their bookings
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Yashkhandelwal683/EVENT-FIESTA.git
+   cd EVENT-FIESTA
+   ```
 
----
+2. **Install backend dependencies**
+   ```bash
+   cd server
+   npm install
+   ```
 
-## 👨‍💻 Team
+3. **Install frontend dependencies**
+   ```bash
+   cd ../client
+   npm install
+   ```
 
-| Name |Roll No. |
-|------|----------------|
-| Brajdeep Singh | 2415990013 |
-| Tanishq Vashishtha | 2315002286 |
+4. **Set up environment variables**
 
+   Copy the example env files and fill in your credentials:
+   ```bash
+   cp server/.env.example server/.env
+   cp client/.env.example client/.env
+   ```
 
+5. **Run the development servers**
+   ```bash
+   # From the root directory (runs both client and server)
+   npm run dev
+   ```
 
+   Or run them separately:
+   ```bash
+   # Terminal 1 - Backend
+   cd server && npm run dev
 
----
+   # Terminal 2 - Frontend
+   cd client && npm run dev
+   ```
 
-## 📄 License
+The frontend runs on `http://localhost:5173` and the backend on `http://localhost:5000`.
 
-This project is developed for academic purposes at GLA University, Mathura.
+## Environment Variables
 
+### Backend (`server/.env`)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `PORT` | Server port | `5000` |
+| `NODE_ENV` | Environment | `development` |
+| `MONGO_URI` | MongoDB connection string | `mongodb+srv://...` |
+| `JWT_ACCESS_SECRET` | JWT signing secret | `<random hex string>` |
+| `JWT_REFRESH_SECRET` | Refresh token secret | `<random hex string>` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | `xxx.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `GOCSPX-...` |
+| `CLIENT_URL` | Frontend URL | `http://localhost:5173` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | `your_cloud_name` |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | `123456789` |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | `your_secret` |
+| `REDIS_URL` | Redis connection URL | `redis://localhost:6379` |
+| `EMAIL_USER` | SMTP email address | `you@gmail.com` |
+| `EMAIL_PASS` | SMTP app password | `xxxx xxxx xxxx` |
+| `RAZORPAY_KEY_ID` | Razorpay key | `rzp_test_xxx` |
+| `RAZORPAY_KEY_SECRET` | Razorpay secret | `your_secret` |
+| `QR_SECRET` | QR code signing key | `<random hex string>` |
+
+### Frontend (`client/.env`)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend API base URL | `http://localhost:5000` |
+| `VITE_SOCKET_URL` | Socket.IO server URL | `http://localhost:5000` |
+| `VITE_RAZORPAY_KEY_ID` | Razorpay client key | `rzp_test_xxx` |
+
+## Deployment
+
+### Frontend (Vercel)
+
+1. Push to GitHub
+2. Import repository on [Vercel](https://vercel.com)
+3. Set root directory to `client`
+4. Add environment variables
+5. Deploy
+
+### Backend (Railway)
+
+1. Create a new project on [Railway](https://railway.app)
+2. Connect your GitHub repository
+3. Set root directory to `server`
+4. Add all backend environment variables
+5. Deploy
+
+### Database (MongoDB Atlas)
+
+1. Create a cluster on [MongoDB Atlas](https://cloud.mongodb.com)
+2. Create a database user
+3. Whitelist your IP addresses
+4. Get the connection string and add to `MONGO_URI`
+
+### Environment Setup Checklist
+
+- [ ] Rotate all secrets (JWT, Cloudinary, Razorpay, Google OAuth, SMTP)
+- [ ] Create new MongoDB Atlas user with strong password
+- [ ] Generate new JWT secrets: `openssl rand -hex 64`
+- [ ] Update `CLIENT_URL` to production frontend URL
+- [ ] Update `GOOGLE_CALLBACK_URL` to production backend URL
+- [ ] Set Razorpay to live mode for production
+
+## API Endpoints
+
+### Auth
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| POST | `/api/auth/register` | Register new user | Public |
+| POST | `/api/auth/login` | Login | Public |
+| POST | `/api/auth/refresh` | Refresh access token | Public |
+| POST | `/api/auth/logout` | Logout | Private |
+| GET | `/api/auth/google` | Google OAuth redirect | Public |
+| GET | `/api/auth/google/callback` | Google OAuth callback | Public |
+
+### Events
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| GET | `/api/events` | List events (filtered) | Public |
+| GET | `/api/events/featured` | Featured events | Public |
+| GET | `/api/events/:id` | Event details | Public |
+| POST | `/api/events` | Create event | Organizer |
+| PUT | `/api/events/:id` | Update event | Organizer |
+| DELETE | `/api/events/:id` | Delete event | Admin/Organizer |
+
+### Bookings
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| POST | `/api/bookings` | Create booking | Customer |
+| GET | `/api/bookings/my-bookings` | User's bookings | Customer |
+| GET | `/api/bookings/:id` | Booking details | Private |
+| PATCH | `/api/bookings/:id/cancel` | Cancel booking | Customer |
+
+### Payments
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| POST | `/api/payments/create-order` | Create Razorpay order | Customer |
+| POST | `/api/payments/verify` | Verify payment | Customer |
+
+### Admin
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| GET | `/api/admin/stats` | Platform statistics | Admin |
+| GET | `/api/admin/users` | List all users | Admin |
+| DELETE | `/api/admin/users/:id` | Remove user | Admin |
+| GET | `/api/admin/events` | All events | Admin |
+| PUT | `/api/admin/events/:id/status` | Approve/reject event | Admin |
+
+## User Roles
+
+**Admin** - Full platform access. Manage users, events, bookings, revenue reports, and analytics.
+
+**Organizer** - Create and manage events, set ticket tiers, scan QR codes at venues, view attendance stats.
+
+**Customer** - Browse events, book tickets, make payments, receive QR-coded tickets, manage bookings.
+
+## License
+
+This project is private and proprietary.

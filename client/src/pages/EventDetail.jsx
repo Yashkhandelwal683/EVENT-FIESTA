@@ -43,7 +43,7 @@ export default function EventDetail() {
     if (!isAuth) {
       // Save selections so they survive the login redirect
       try { sessionStorage.setItem(`sel_${id}`, JSON.stringify(selections)); } catch { /* ignore */ }
-      navigate(`/login?next=/events/${id}`);
+      navigate(`/register?next=/events/${id}`);
       return;
     }
     // Clear saved selections once we navigate to checkout
@@ -154,7 +154,7 @@ export default function EventDetail() {
                 ? '⏳ Tickets Coming Soon'
                 : !hasSelected
                 ? 'Select Tickets Above'
-                : '🎟️ Book Now →'}
+                : '🎟️ Register Now →'}
             </Button>
 
             {!isAuth && !soldOut && tickets.length > 0 && (

@@ -1,82 +1,90 @@
 const mongoose = require('mongoose');
 
-/**
- * IssuedTicket — one document per individual ticket issued to an attendee.
- * Distinct from the Ticket model (which tracks ticket-type pools / capacity).
- * Created during payment verification when a booking is confirmed.
- */
-const issuedTicketSchema = new mongoose.Schema(
-  {
-    booking: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref:  'Booking',
-      required: true,
-    },
-    event: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref:  'Event',
-      required: true,
-    },
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref:  'User',
-      required: true,
-    },
-    /** Human-readable unique ID printed on the ticket (e.g. "EVT-a1b2c3d4") */
-    ticketCode: {
-      type:   String,
-      unique: true,
-      required: true,
-    },
-    /** JWT-signed compact token that gets encoded into the QR image */
-    qrToken: {
-      type:   String,
-      unique: true,
-      sparse: true,
-    },
-    /** Base64 data-URL of the QR code PNG (stored for email & profile display) */
-    qrImage: {
-      type: String,
-    },
-    /** Ticket tier name, e.g. "Early Bird", "VIP" */
-    tierName: {
-      type:    String,
-      default: 'General',
-      trim:    true,
-    },
-    /** Payment status — ticket is only valid for entry if 'completed' */
-    paymentStatus: {
-      type:    String,
-      enum:    ['pending', 'completed', 'refunded', 'failed'],
-      default: 'pending',
-    },
-    /** Entry validation state */
-    isUsed:       { type: Boolean, default: false,  index: true },
-    usedAt:       { type: Date,    default: null },
-    usedBy:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    scanAttempts: { type: Number,  default: 0 },
-    scanLog: [
-      {
-        scannedAt: { type: Date },
-        scannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        ipAddress: { type: String },
-        result: {
-          type: String,
-          enum: ['valid', 'already_used', 'expired', 'invalid', 'unpaid'],
-        },
-        _id: false,
-      },
-    ],
+const issuedTicketSchema = new mongoose.Schema({
+  registration: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Registration',
+    default: null,
   },
-  { timestamps: true }
-);
+  booking: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Booking',
+    default: null,
+  },
+  event: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: true,
+  },
+  subEvent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubEvent',
+    default: null,
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  ticketCode: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  qrToken: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+  qrImage: { type: String },
+  tierName: {
+    type: String,
+    default: 'General',
+    trim: true,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'refunded', 'failed'],
+    default: 'pending',
+  },
+  attendeeInfo: {
+    name:  { type: String, trim: true },
+    phone: { type: String, trim: true },
+    email: { type: String, trim: true, lowercase: true },
+    address: { type: String, trim: true },
+  },
+  entryStatus: {
+    type: String,
+    enum: ['unused', 'checked_in', 'checked_out', 'expired', 'cancelled'],
+    default: 'unused',
+  },
+  entryTime:  { type: Date, default: null },
+  exitTime:   { type: Date, default: null },
+  checkedInBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  checkedOutBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  scanAttempts: { type: Number, default: 0 },
+  scanLog: [{
+    scannedAt: { type: Date },
+    scannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    ipAddress: { type: String },
+    action: {
+      type: String,
+      enum: ['entry_attempt', 'entry_granted', 'exit_attempt', 'exit_granted', 'invalid_attempt'],
+    },
+    result: {
+      type: String,
+      enum: ['valid', 'already_used', 'expired', 'invalid', 'unpaid', 'already_checked_in', 'checked_out'],
+    },
+    _id: false,
+  }],
+}, { timestamps: true });
 
 issuedTicketSchema.index({ booking: 1 });
-issuedTicketSchema.index({ event:   1 });
-issuedTicketSchema.index({ user:    1 });
-// ticketCode index is implicit from unique:true on the field
-issuedTicketSchema.index({ event: 1, isUsed: 1 });
-issuedTicketSchema.index({ event: 1, scanAttempts: 1 }); // for fraud report
+issuedTicketSchema.index({ event: 1 });
+issuedTicketSchema.index({ subEvent: 1 });
+issuedTicketSchema.index({ user: 1 });
+issuedTicketSchema.index({ event: 1, entryStatus: 1 });
+issuedTicketSchema.index({ event: 1, scanAttempts: 1 });
 
 const IssuedTicket = mongoose.model('IssuedTicket', issuedTicketSchema);
 module.exports = IssuedTicket;

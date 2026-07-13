@@ -53,18 +53,23 @@ const imageFilter = (_req, file, cb) => {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-const _uploadEventBanner = multer({
+const upload = multer({
   storage: eventBannerStorage,
   fileFilter: imageFilter,
   limits: { fileSize: MAX_FILE_SIZE },
-}).single('bannerImage');
+});
 
-/** Wrapper: if Cloudinary/multer errors, log and continue without a file */
-const uploadEventBanner = (req, res, next) => {
-  _uploadEventBanner(req, res, (err) => {
+/** Wrapper: if Cloudinary/multer errors, log and continue without assets */
+const uploadEventAssets = (req, res, next) => {
+  const multerFields = upload.fields([
+    { name: 'bannerImage', maxCount: 1 },
+    { name: 'gallery', maxCount: 10 },
+  ]);
+
+  multerFields(req, res, (err) => {
     if (err) {
-      console.error('⚠️  Multer/Cloudinary upload error (continuing without image):', err.message || err);
-      req.file = undefined;
+      console.error('⚠️  Multer/Cloudinary upload error (continuing without assets):', err.message || err);
+      req.files = undefined;
     }
     next();
   });
@@ -76,4 +81,4 @@ const uploadAvatar = multer({
   limits: { fileSize: MAX_FILE_SIZE },
 }).single('avatar');
 
-module.exports = { uploadEventBanner, uploadAvatar };
+module.exports = { uploadEventAssets, uploadAvatar };

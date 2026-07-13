@@ -1,18 +1,11 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createBaseQuery } from '../../api/baseQuery';
 
 const BASE = import.meta.env.VITE_API_URL;
 
 export const bookingsApi = createApi({
   reducerPath: 'bookingsApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${BASE}/api/bookings`,
-    credentials: 'include',
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.accessToken;
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery: createBaseQuery({ baseUrl: `${BASE}/api/bookings` }),
   tagTypes: ['Booking', 'CancellationRequest'],
   endpoints: (build) => ({
     createBooking: build.mutation({
@@ -23,6 +16,7 @@ export const bookingsApi = createApi({
     getUserBookings: build.query({
       query: () => '/my',
       transformResponse: (res) => res.data || res,
+      keepUnusedDataFor: 300,
       providesTags: ['Booking'],
     }),
     getBookingById: build.query({
@@ -36,8 +30,6 @@ export const bookingsApi = createApi({
       invalidatesTags: ['Booking'],
     }),
 
-    // ── Cancellation workflow ──────────────────────────────────────────────────
-    /** User requests cancellation with optional reason */
     requestCancellation: build.mutation({
       query: ({ bookingId, cancellationReason }) => ({
         url: `/${bookingId}/cancel-request`,
@@ -48,14 +40,12 @@ export const bookingsApi = createApi({
       invalidatesTags: ['Booking'],
     }),
 
-    /** Admin fetches all pending cancellation requests */
     getPendingCancellations: build.query({
       query: () => '/cancellation-requests',
       transformResponse: (res) => res.data || res,
       providesTags: ['CancellationRequest'],
     }),
 
-    /** Admin approves or rejects a cancellation request */
     adminCancellationDecision: build.mutation({
       query: ({ bookingId, decision, reason }) => ({
         url: `/${bookingId}/admin-decision`,

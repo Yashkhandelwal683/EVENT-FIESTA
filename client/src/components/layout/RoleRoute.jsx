@@ -3,6 +3,12 @@ import { useSelector } from 'react-redux';
 import { selectUserRole } from '../../features/auth/authSlice';
 import ProtectedRoute from './ProtectedRoute';
 
+const roleDashboard = {
+  attendee: '/dashboard',
+  organizer: '/organizer/dashboard',
+  admin: '/admin',
+};
+
 export default function RoleRoute({ children, roles = [] }) {
   const role = useSelector(selectUserRole);
 
@@ -11,7 +17,7 @@ export default function RoleRoute({ children, roles = [] }) {
       {roles.length === 0 || roles.includes(role) ? (
         children
       ) : (
-        <Navigate to="/" replace />
+        <Navigate to={roleDashboard[role] || '/'} replace />
       )}
     </ProtectedRoute>
   );

@@ -4,11 +4,12 @@ const User = require('../models/User');
 // Validate environment variables
 const validateGoogleOAuthConfig = () => {
   const required = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_CALLBACK_URL'];
-  const missing = required.filter(key => 
-    !process.env[key] || 
-    process.env[key].includes('your_') || 
-    process.env[key].includes('localhost')
-  );
+  const missing = required.filter(key => {
+    if (!process.env[key]) return true;
+    if (process.env[key].includes('your_')) return true;
+    if (key === 'GOOGLE_CALLBACK_URL' && process.env.NODE_ENV === 'production' && process.env[key].includes('localhost')) return true;
+    return false;
+  });
   
   if (missing.length > 0) {
     console.warn(`⚠️  Google OAuth will not work. Missing or invalid config: ${missing.join(', ')}`);
@@ -25,11 +26,10 @@ if (validateGoogleOAuthConfig()) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        // ✅ Use full production callback URL from environment
-        // Example: https://bridgelabz-event-management-ticket-n409.onrender.com/api/auth/google/callback
         callbackURL: process.env.GOOGLE_CALLBACK_URL,
+        passReqToCallback: true,
       },
-      async (_accessToken, _refreshToken, profile, done) => {
+      async (req, _accessToken, _refreshToken, profile, done) => {
         try {
           const email =
             profile.emails && profile.emails[0]
@@ -41,6 +41,8 @@ if (validateGoogleOAuthConfig()) {
               ? profile.photos[0].value
               : undefined;
 
+          const requestedRole = req?.cookies?.oauth_role === 'organizer' ? 'organizer' : 'attendee';
+
           let user = await User.findOne({ googleId: profile.id });
 
           if (!user && email) {
@@ -49,18 +51,26 @@ if (validateGoogleOAuthConfig()) {
               user.googleId = profile.id;
               if (!user.avatar && avatar) user.avatar = avatar;
               user.isVerified = true;
-              await user.save();
+              await user.save({ validateBeforeSave: false });
             }
           }
 
           if (!user) {
-            user = await User.create({
+            const userFields = {
               googleId: profile.id,
               name: profile.displayName,
               email,
               avatar,
               isVerified: true,
-            });
+              role: requestedRole,
+            };
+
+            if (requestedRole === 'organizer') {
+              userFields.approvalStatus = 'pending';
+              userFields.approved = false;
+            }
+
+            user = await User.create(userFields);
           }
 
           return done(null, user);

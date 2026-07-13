@@ -1,12 +1,15 @@
 const rateLimit = require('express-rate-limit');
 
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
 /**
  * General API rate limiter — applied globally in app.js.
- * 100 requests per IP per 15 minutes.
+ * Production: 200 requests per IP per 15 minutes.
+ * Development: 2000 requests per IP per 15 minutes (avoids hitting the limit during hot-reload / debugging).
  */
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  windowMs: 15 * 60 * 1000,
+  max: NODE_ENV === 'production' ? 200 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -17,11 +20,12 @@ const apiLimiter = rateLimit({
 
 /**
  * Strict limiter for sensitive auth endpoints (login / register).
- * 10 requests per IP per 15 minutes.
+ * Production: 10 requests per IP per 15 minutes.
+ * Development: 50 per 15 minutes.
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: NODE_ENV === 'production' ? 10 : 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -31,11 +35,11 @@ const authLimiter = rateLimit({
 });
 
 /**
- * Payment limiter — 20 per hour.
+ * Payment limiter — 20 per hour (50 in dev).
  */
 const paymentLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 20,
+  max: NODE_ENV === 'production' ? 20 : 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

@@ -6,14 +6,17 @@ node_modules/
 .pnp.js
 
 # ===========================
-# Environment Variables (NEVER commit these)
+# Environment Variables
 # ===========================
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
-.env.production.local
 .env.production
+.env.production.local
+.env*.local
 
 # ===========================
 # Build outputs
@@ -66,3 +69,17 @@ coverage/
 .cache/
 tmp/
 temp/
+
+# ===========================
+# Secrets & Credentials
+# ===========================
+**/*.env
+**/.env.*
+**/RENDER_PRODUCTION_ENV.md
+
+# ===========================
+# Misc project files
+# ===========================
+backend.md
+frontend.md
+frontendnew.md

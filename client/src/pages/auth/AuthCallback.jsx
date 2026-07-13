@@ -65,9 +65,10 @@ export default function AuthCallback() {
           // 7. Show success message
           toast.success(`Welcome back, ${userData?.name || 'User'}!`);
 
-          // 8. Redirect to home
-          console.log('[AuthCallback] Redirecting to home page');
-          navigate('/', { replace: true });
+          // 8. Redirect based on role
+          const redirect = userData.role === 'admin' ? '/admin' : userData.role === 'organizer' ? '/organizer/dashboard' : '/dashboard';
+          console.log(`[AuthCallback] Redirecting to ${redirect}`);
+          navigate(redirect, { replace: true });
         } catch (profileErr) {
           // Profile fetch failed
           console.error('[AuthCallback] Profile fetch failed:', profileErr?.message);

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 
 const ticketLineSchema = new mongoose.Schema(
   {
@@ -36,6 +35,11 @@ const bookingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Event',
       required: [true, 'Event reference is required'],
+    },
+    organizer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
     tickets: {
       type: [ticketLineSchema],
@@ -97,14 +101,87 @@ const bookingSchema = new mongoose.Schema(
 // ── Indexes ───────────────────────────────────────────────────────────────────
 bookingSchema.index({ user: 1, createdAt: -1 });
 bookingSchema.index({ event: 1 });
+bookingSchema.index({ organizer: 1 });
 
-// ── Auto-generate 8-char uppercase booking reference ──────────────────────────
-bookingSchema.pre('validate', function (next) {
-  if (!this.bookingRef) {
-    this.bookingRef = crypto.randomBytes(4).toString('hex').toUpperCase();
+// ── Helpers for human-readable booking reference ──────────────────────────────
+const Event = mongoose.model('Event');
+const User  = mongoose.model('User');
+
+const STOP_WORDS = new Set(['the', 'a', 'an', 'of', 'and', 'or', 'for', 'in', 'on', 'at', 'to']);
+
+function abbreviateName(name, maxLen = 5) {
+  if (!name) return 'EVT';
+  const words = name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !STOP_WORDS.has(w.toLowerCase()));
+  if (words.length === 0) return 'EVT';
+  if (words.length === 1) return words[0].slice(0, maxLen);
+  return words[0].slice(0, 3) + words[1].slice(0, 2);
+}
+
+function abbreviateOrg(name, maxLen = 3) {
+  if (!name) return 'UNI';
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !STOP_WORDS.includes(w.toLowerCase()))
+    .map((w) => w[0])
+    .join('')
+    .slice(0, maxLen) || 'UNI';
+}
+
+// ── Auto-generate human-readable booking reference ────────────────────────────
+// Format: EVENTORGEVENTS-0001  (e.g. MUDRAGLA-EVENTS-0001)
+bookingSchema.pre('validate', async function (next) {
+  if (this.bookingRef) return next();
+
+  try {
+    let eventTitle = '';
+    let orgName = '';
+
+    if (this.event) {
+      const EventModel = mongoose.model('Event');
+      const eventDoc = await EventModel.findById(this.event).select('title organizer').lean();
+      if (eventDoc) {
+        eventTitle = eventDoc.title || '';
+        if (eventDoc.organizer) {
+          const UserDoc = mongoose.model('User');
+          const orgDoc = await UserDoc.findById(eventDoc.organizer).select('organizationName').lean();
+          orgName = orgDoc?.organizationName || '';
+        }
+      }
+    }
+
+    const eventAbbr = abbreviateName(eventTitle, 5);
+    const orgAbbr   = abbreviateOrg(orgName, 3);
+    const prefix    = `${eventAbbr}${orgAbbr}-EVENTS`;
+
+    const Booking = mongoose.model('Booking');
+    const lastBooking = await Booking
+      .findOne({ bookingRef: { $regex: `^${prefix}-\\d{4}$` } })
+      .sort({ bookingRef: -1 })
+      .lean();
+
+    let seq = 1;
+    if (lastBooking?.bookingRef) {
+      const lastNum = parseInt(lastBooking.bookingRef.split('-').pop(), 10);
+      if (!isNaN(lastNum)) seq = lastNum + 1;
+    }
+
+    this.bookingRef = `${prefix}-${String(seq).padStart(4, '0')}`;
+  } catch (err) {
+    // Fallback to random ref if something goes wrong
+    const crypto = require('crypto');
+    this.bookingRef = 'BK-' + crypto.randomBytes(4).toString('hex').toUpperCase();
   }
+
   next();
 });
 
-const Booking = mongoose.model('Booking', bookingSchema);// For testing purposes, we export the schema as well
+const Booking = mongoose.model('Booking', bookingSchema);
 module.exports = Booking;

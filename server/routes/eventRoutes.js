@@ -1,28 +1,41 @@
 const express = require('express');
 const {
   createEvent,
+  validateEventBody,
   getEvents,
+  getPublicEvents,
   getEventById,
   updateEvent,
   deleteEvent,
   getFeaturedEvents,
+  registerForEvent,
+  getEventRegistrations,
+  getOrganizerEvents,
 } = require('../controllers/eventController');
 const { verifyToken, requireRole, optionalAuth } = require('../middleware/authMiddleware');
-const { uploadEventBanner } = require('../middleware/upload');
+const { uploadEventAssets } = require('../middleware/upload');
 
 const router = express.Router();
 
-// Public routes (optionalAuth so organizer=me still works when logged in)
-router.get('/',          optionalAuth, getEvents);
-router.get('/featured',  getFeaturedEvents);
-router.get('/:id',       getEventById);
+router.get('/public', getPublicEvents);
+router.get('/featured', getFeaturedEvents);
+router.get('/', optionalAuth, getEvents);
 
-// Organizer / Admin protected
+router.get(
+  '/organizer/me',
+  verifyToken,
+  requireRole('organizer', 'admin'),
+  getOrganizerEvents
+);
+
+router.get('/:id', getEventById);
+
 router.post(
   '/',
   verifyToken,
   requireRole('organizer', 'admin'),
-  uploadEventBanner,
+  uploadEventAssets,
+  validateEventBody,
   createEvent
 );
 
@@ -30,10 +43,19 @@ router.put(
   '/:id',
   verifyToken,
   requireRole('organizer', 'admin'),
-  uploadEventBanner,
+  uploadEventAssets,
   updateEvent
 );
 
 router.delete('/:id', verifyToken, requireRole('organizer', 'admin'), deleteEvent);
+
+router.post('/:id/register', optionalAuth, registerForEvent);
+
+router.get(
+  '/:id/registrations',
+  verifyToken,
+  requireRole('organizer', 'admin'),
+  getEventRegistrations
+);
 
 module.exports = router;

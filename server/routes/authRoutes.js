@@ -17,11 +17,15 @@ const router = express.Router();
 const registerValidation = [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('role').optional().isIn(['attendee', 'organizer']).withMessage('Invalid role'),
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters')
     .matches(/\d/)
     .withMessage('Password must contain at least one number'),
+  body('organizationName').if(body('role').equals('organizer')).trim().notEmpty().withMessage('Organization name is required'),
+  body('phone').if(body('role').equals('organizer')).trim().notEmpty().withMessage('Phone number is required'),
+  body('city').if(body('role').equals('organizer')).trim().notEmpty().withMessage('City is required'),
 ];
 
 const loginValidation = [
@@ -39,9 +43,14 @@ const validateOAuthEnvironment = (req, res, next) => {
 };
 
 // ── Google OAuth ──────────────────────────────────────────────────────────────
-// GET /api/auth/google
+// GET /api/auth/google — stores role in cookie, then redirects to Google
 router.get(
   '/google',
+  (req, res, next) => {
+    const role = req.query.state === 'organizer' ? 'organizer' : 'attendee';
+    res.cookie('oauth_role', role, { maxAge: 10 * 60 * 1000, sameSite: 'lax' });
+    next();
+  },
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })
 );
 
@@ -75,5 +84,8 @@ router.post('/logout', verifyToken, logout);
 
 // POST /api/auth/refresh-token
 router.post('/refresh-token', refreshToken);
+
+// Alias: /api/auth/refresh (client uses this path)
+router.post('/refresh', refreshToken);
 
 module.exports = router;

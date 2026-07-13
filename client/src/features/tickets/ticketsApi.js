@@ -1,18 +1,11 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createBaseQuery } from '../../api/baseQuery';
 
 const BASE = import.meta.env.VITE_API_URL;
 
 export const ticketsApi = createApi({
   reducerPath: 'ticketsApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${BASE}/api/tickets`,
-    credentials: 'include',
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.accessToken;
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery: createBaseQuery({ baseUrl: `${BASE}/api/tickets` }),
   endpoints: (build) => ({
     /** POST /api/tickets/validate — organizer/admin validates a QR token at the gate */
     validateTicket: build.mutation({

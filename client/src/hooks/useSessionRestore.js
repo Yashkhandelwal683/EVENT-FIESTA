@@ -26,13 +26,17 @@ export function useSessionRestore() {
         // ApiResponse shape: { success, data: <Mongoose user doc>, message }
         const raw = data?.data ?? data;
         if (raw?._id || raw?.id) {
-          // Normalize to the same shape as the login/register response
+          // Store the full profile so registration forms can auto-fill
           const userData = {
-            id:     raw._id ?? raw.id,
-            name:   raw.name,
-            email:  raw.email,
-            role:   raw.role,
-            avatar: raw.avatar ?? null,
+            id:        raw._id ?? raw.id,
+            name:      raw.name,
+            email:     raw.email,
+            role:      raw.role,
+            avatar:    raw.avatar ?? null,
+            phone:     raw.phone ?? '',
+            college:   raw.college ?? '',
+            department: raw.department ?? '',
+            gender:    raw.gender ?? '',
           };
           dispatch(setCredentials({ user: userData }));
         }

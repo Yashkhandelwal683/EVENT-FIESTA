@@ -19,7 +19,7 @@ export function useAuth() {
   const logout = async () => {
     try { await logoutApi().unwrap(); } catch { /* ignore */ }
     dispatch(logoutAction());
-    navigate('/login');
+    navigate('/');
   };
 
   const isOrganizer = role === 'organizer' || role === 'admin';

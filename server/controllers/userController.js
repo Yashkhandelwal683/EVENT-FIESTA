@@ -1,4 +1,11 @@
 const User = require('../models/User');
+const Payment = require('../models/Payment');
+const Event = require('../models/Event');
+const Booking = require('../models/Booking');
+const IssuedTicket = require('../models/IssuedTicket');
+const Review = require('../models/Review');
+const Notification = require('../models/Notification');
+const SubEvent = require('../models/SubEvent');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 
@@ -68,24 +75,41 @@ const getAllUsers = async (req, res) => {
   );
 };
 
-// ── PATCH /api/users/:id/role (admin) ────────────────────────────────────────
-const updateUserRole = async (req, res) => {
-  const { role } = req.body;
-  const validRoles = ['attendee', 'organizer', 'admin'];
-
-  if (!validRoles.includes(role)) {
-    throw new ApiError(400, `Role must be one of: ${validRoles.join(', ')}`);
-  }
-
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    { role },
-    { new: true, runValidators: true }
-  ).select('-refreshToken');
-
-  if (!user) throw new ApiError(404, 'User not found');
-
-  res.json(new ApiResponse(200, user, `User role updated to '${role}'`));
+// ── DELETE /api/users/:id (admin) ───────────────────────────────────────────
+const deleteUser = async (req, res) => {
+  throw new ApiError(403, 'User deletion is disabled for security reasons');
 };
 
-module.exports = { getProfile, updateProfile, uploadAvatar, getAllUsers, updateUserRole };
+// ── PATCH /api/users/:id/role (admin) ────────────────────────────────────────
+const updateUserRole = async (req, res) => {
+  throw new ApiError(403, 'Role changes are disabled for security reasons');
+};
+
+// ── GET /api/users/organizer/earnings ──────────────────────────────────────────
+const getOrganizerEarnings = async (req, res) => {
+  const events = await Event.find({ organizer: req.user.id }).select('_id title');
+  const eventIds = events.map(e => e._id);
+
+  const pipeline = [
+    { $match: { organizer: req.user._id || req.user.id, status: 'completed' } },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: '$amount' },
+        totalCommission: { $sum: '$commissionAmount' },
+        totalEarnings: { $sum: '$organizerAmount' },
+        payoutCount: { $sum: 1 },
+      },
+    },
+  ];
+
+  const [result] = await Payment.aggregate(pipeline);
+  const stats = result || { totalRevenue: 0, totalCommission: 0, totalEarnings: 0, payoutCount: 0 };
+
+  res.json(new ApiResponse(200, {
+    ...stats,
+    events: events.map(e => ({ _id: e._id, title: e.title })),
+  }, 'Organizer earnings fetched'));
+};
+
+module.exports = { getProfile, updateProfile, uploadAvatar, getAllUsers, updateUserRole, deleteUser, getOrganizerEarnings };

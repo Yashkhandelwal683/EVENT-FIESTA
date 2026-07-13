@@ -11,6 +11,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Verify SMTP connection on startup
+transporter.verify()
+  .then(() => console.log('✅ SMTP transporter verified — emails will work'))
+  .catch((err) => console.error('❌ SMTP transporter verification failed:', err.message));
+
 /**
  * Sends a booking confirmation email with QR code embedded (CID attachment).
  *
@@ -67,7 +72,7 @@ const sendBookingConfirmation = async (params) => {
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden">
 
     <div style="background:linear-gradient(135deg,#0A1931,#1a1a4e);padding:32px 24px;text-align:center">
-      <h1 style="color:#00B4D8;margin:0;font-size:26px">🎉 EventHub</h1>
+      <h1 style="color:#00B4D8;margin:0;font-size:26px">🎉 Event Fiesta</h1>
       <p style="color:rgba(255,255,255,0.8);margin:6px 0 0">Booking Confirmed!</p>
     </div>
 
@@ -120,7 +125,7 @@ const sendBookingConfirmation = async (params) => {
 
     <div style="background:#0A1931;padding:14px;text-align:center">
       <p style="color:#64748b;margin:0;font-size:12px">
-        Built with ❤️ by Brajdeep Singh — EventHub 2026 &nbsp;|&nbsp; GLA University BridgeLab Mini Project
+        Event Fiesta 2026
       </p>
     </div>
   </div>
@@ -182,7 +187,7 @@ const sendCancellationRequestToAdmin = async ({ booking, user, event, refundAmou
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
         <div style="background:#0A1931;padding:24px;text-align:center">
-          <h1 style="color:#00B4D8;margin:0">EventHub Admin</h1>
+          <h1 style="color:#00B4D8;margin:0">Event Fiesta Admin</h1>
           <p style="color:#94a3b8;margin:8px 0 0">Cancellation Request Received</p>
         </div>
         <div style="padding:24px;background:#f9f9f9">
@@ -213,7 +218,7 @@ const sendCancellationRequestToAdmin = async ({ booking, user, event, refundAmou
           </div>
         </div>
         <div style="background:#0A1931;padding:12px;text-align:center">
-          <p style="color:#94a3b8;margin:0;font-size:12px">EventHub Admin Panel — Brajdeep Singh</p>
+          <p style="color:#94a3b8;margin:0;font-size:12px">Event Fiesta Admin Panel</p>
         </div>
       </div>
     `,
@@ -231,7 +236,7 @@ const sendCancellationApprovedEmail = async ({ user, event, booking, refundAmoun
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
         <div style="background:#0A1931;padding:24px;text-align:center">
-          <h1 style="color:#00B4D8;margin:0">EventHub</h1>
+          <h1 style="color:#00B4D8;margin:0">Event Fiesta</h1>
         </div>
         <div style="padding:24px;background:#f9f9f9">
           <div style="background:#dcfce7;border:2px solid #16a34a;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px">
@@ -265,7 +270,7 @@ const sendCancellationApprovedEmail = async ({ user, event, booking, refundAmoun
           </div>
         </div>
         <div style="background:#0A1931;padding:12px;text-align:center">
-          <p style="color:#94a3b8;margin:0;font-size:12px">Built with love by Brajdeep Singh — EventHub 2026</p>
+          <p style="color:#94a3b8;margin:0;font-size:12px">Event Fiesta 2026</p>
         </div>
       </div>
     `,
@@ -283,7 +288,7 @@ const sendCancellationRejectedEmail = async ({ user, event, booking, reason }) =
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
         <div style="background:#0A1931;padding:24px;text-align:center">
-          <h1 style="color:#00B4D8;margin:0">EventHub</h1>
+          <h1 style="color:#00B4D8;margin:0">Event Fiesta</h1>
         </div>
         <div style="padding:24px;background:#f9f9f9">
           <div style="background:#fee2e2;border:2px solid #dc2626;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px">
@@ -300,7 +305,128 @@ const sendCancellationRejectedEmail = async ({ user, event, booking, reason }) =
           <p style="color:#64748b;font-size:13px">If you believe this decision is incorrect, please contact us at ${process.env.EMAIL_USER}</p>
         </div>
         <div style="background:#0A1931;padding:12px;text-align:center">
-          <p style="color:#94a3b8;margin:0;font-size:12px">Built with love by Brajdeep Singh — EventHub 2026</p>
+          <p style="color:#94a3b8;margin:0;font-size:12px">Event Fiesta 2026</p>
+        </div>
+      </div>
+    `,
+  });
+};
+
+// ── Organizer Approval Emails ─────────────────────────────────────────────────
+
+/**
+ * Sends organizer registration request notification to admin.
+ */
+const sendOrganizerRequestToAdmin = async ({ organizer }) => {
+  const adminEmail = process.env.ADMIN_MAIL || process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: adminEmail,
+    subject: `New Organizer Registration — ${organizer.name}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#0A1931;padding:24px;text-align:center">
+          <h1 style="color:#00B4D8;margin:0">Event Fiesta Admin</h1>
+          <p style="color:#94a3b8;margin:8px 0 0">New Organizer Registration Request</p>
+        </div>
+        <div style="padding:24px;background:#f9f9f9">
+          <h2 style="color:#0A1931">New Organizer Wants to Join</h2>
+          <p>A new organizer has registered and is waiting for your approval.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr style="background:#e8f4fd"><td style="padding:10px;font-weight:bold">Name</td><td style="padding:10px">${organizer.name}</td></tr>
+            <tr><td style="padding:10px;font-weight:bold">Email</td><td style="padding:10px">${organizer.email}</td></tr>
+            <tr style="background:#e8f4fd"><td style="padding:10px;font-weight:bold">Organization</td><td style="padding:10px">${organizer.organizationName || 'N/A'}</td></tr>
+            <tr><td style="padding:10px;font-weight:bold">Phone</td><td style="padding:10px">${organizer.phone || 'N/A'}</td></tr>
+            <tr style="background:#e8f4fd"><td style="padding:10px;font-weight:bold">City</td><td style="padding:10px">${organizer.city || 'N/A'}</td></tr>
+            <tr><td style="padding:10px;font-weight:bold">Registered At</td><td style="padding:10px">${new Date().toLocaleString('en-IN')}</td></tr>
+          </table>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${process.env.CLIENT_URL}/admin/organizer-approvals"
+              style="background:#16a34a;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">
+              Review Request
+            </a>
+          </div>
+        </div>
+        <div style="background:#0A1931;padding:12px;text-align:center">
+          <p style="color:#94a3b8;margin:0;font-size:12px">Event Fiesta Admin Panel</p>
+        </div>
+      </div>
+    `,
+  });
+};
+
+/**
+ * Sends organizer approval email to the organizer.
+ */
+const sendOrganizerApprovedEmail = async ({ user }) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: user.email,
+    subject: `Congratulations! Your Organizer Account Has Been Approved`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#0A1931;padding:24px;text-align:center">
+          <h1 style="color:#00B4D8;margin:0">Event Fiesta</h1>
+        </div>
+        <div style="padding:24px;background:#f9f9f9">
+          <div style="background:#dcfce7;border:2px solid #16a34a;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px">
+            <h2 style="color:#16a34a;margin:0">Account Approved!</h2>
+            <p style="color:#15803d;margin:8px 0 0">You can now create and manage events</p>
+          </div>
+          <p style="font-size:16px">Hi <strong>${user.name}</strong>,</p>
+          <p>Great news! Your organizer account has been approved by our admin team. You can now log in and start creating events on Event Fiesta.</p>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${process.env.CLIENT_URL}/login"
+              style="background:#0A1931;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">
+              Login to Dashboard
+            </a>
+          </div>
+          <div style="background:#dbeafe;border:1px solid #3b82f6;border-radius:8px;padding:16px;margin:16px 0">
+            <h3 style="color:#1e40af;margin:0 0 8px">What's Next?</h3>
+            <ul style="color:#1e40af;margin:0;padding-left:20px">
+              <li>Create your first event</li>
+              <li>Set up ticket tiers and pricing</li>
+              <li>Manage bookings and attendees</li>
+              <li>Track your revenue and analytics</li>
+            </ul>
+          </div>
+        </div>
+        <div style="background:#0A1931;padding:12px;text-align:center">
+          <p style="color:#94a3b8;margin:0;font-size:12px">Event Fiesta 2026</p>
+        </div>
+      </div>
+    `,
+  });
+};
+
+/**
+ * Sends organizer rejection email to the organizer.
+ */
+const sendOrganizerRejectedEmail = async ({ user, reason }) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: user.email,
+    subject: `Organizer Application Update`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#0A1931;padding:24px;text-align:center">
+          <h1 style="color:#00B4D8;margin:0">Event Fiesta</h1>
+        </div>
+        <div style="padding:24px;background:#f9f9f9">
+          <div style="background:#fee2e2;border:2px solid #dc2626;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px">
+            <h2 style="color:#dc2626;margin:0">Application Not Approved</h2>
+          </div>
+          <p>Hi <strong>${user.name}</strong>,</p>
+          <p>Thank you for your interest in becoming an organizer on Event Fiesta. Unfortunately, your application has not been approved at this time.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:10px;font-weight:bold">Reason</td><td style="padding:10px;color:#dc2626">${reason || 'No specific reason provided.'}</td></tr>
+          </table>
+          <p>You can register again with a new account if you wish to reapply.</p>
+          <p style="color:#64748b;font-size:13px">If you believe this is an error, please contact us at ${process.env.EMAIL_USER}</p>
+        </div>
+        <div style="background:#0A1931;padding:12px;text-align:center">
+          <p style="color:#94a3b8;margin:0;font-size:12px">Event Fiesta 2026</p>
         </div>
       </div>
     `,
@@ -313,4 +439,7 @@ module.exports = {
   sendCancellationRequestToAdmin,
   sendCancellationApprovedEmail,
   sendCancellationRejectedEmail,
+  sendOrganizerRequestToAdmin,
+  sendOrganizerApprovedEmail,
+  sendOrganizerRejectedEmail,
 };

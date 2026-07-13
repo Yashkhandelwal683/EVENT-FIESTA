@@ -3,10 +3,54 @@ const mongoose = require('mongoose');
 const venueSchema = new mongoose.Schema(
   {
     name:    { type: String, required: true, trim: true },
-    address: { type: String, required: true, trim: true },
-    city:    { type: String, required: true, trim: true },
-    state:   { type: String, trim: true },
-    country: { type: String, required: true, trim: true },
+    address: { type: String, default: '', trim: true },
+    city:    { type: String, default: '', trim: true },
+    state:   { type: String, default: '', trim: true },
+    country: { type: String, default: 'India', trim: true },
+    lat:     { type: Number, default: null },
+    lng:     { type: Number, default: null },
+  },
+  { _id: false }
+);
+
+const scheduleItemSchema = new mongoose.Schema(
+  {
+    time:        { type: String, required: true, trim: true },
+    title:       { type: String, required: true, trim: true },
+    description: { type: String, default: '', trim: true },
+  },
+  { _id: false }
+);
+
+const highlightSchema = new mongoose.Schema(
+  {
+    icon:        { type: String, default: 'star' },
+    title:       { type: String, required: true, trim: true },
+    description: { type: String, default: '', trim: true },
+  },
+  { _id: false }
+);
+
+const facilitySchema = new mongoose.Schema(
+  {
+    icon: { type: String, default: 'check-circle' },
+    name: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+const ruleSchema = new mongoose.Schema(
+  {
+    icon: { type: String, default: 'alert-circle' },
+    text: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+const faqSchema = new mongoose.Schema(
+  {
+    question: { type: String, required: true, trim: true },
+    answer:   { type: String, required: true, trim: true },
   },
   { _id: false }
 );
@@ -23,32 +67,41 @@ const eventSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Event description is required'],
     },
+    shortDescription: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: [500, 'Short description cannot exceed 500 characters'],
+    },
     category: {
       type: String,
       required: [true, 'Category is required'],
       enum: [
-        'conference',
-        'concert',
-        'festival',
-        'sports',
-        'workshop',
-        'networking',
-        'exhibition',
-        'other',
+        'conference', 'concert', 'festival', 'sports',
+        'workshop', 'networking', 'exhibition', 'other',
       ],
+    },
+    poster: {
+      type: String,
+      default: null,
     },
     bannerImage: {
       type: String,
       default: null,
     },
-    organizer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Organizer is required'],
+    gallery: [{ type: String }],
+    location: {
+      type: String,
+      default: '',
     },
     venue: {
       type: venueSchema,
-      required: [true, 'Venue details are required'],
+      default: null,
+    },
+    price: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     startDate: {
       type: Date,
@@ -56,12 +109,54 @@ const eventSchema = new mongoose.Schema(
     },
     endDate: {
       type: Date,
-      // Not required — some events are single-day or open-ended
+      required: [true, 'End date is required'],
+    },
+    registrationDeadline: {
+      type: Date,
+      default: null,
+    },
+    eventType: {
+      type: String,
+      enum: ['solo', 'team'],
+      default: 'solo',
+    },
+    teamSize: {
+      type: Number,
+      default: null,
+      min: 2,
+    },
+    minTeamSize: {
+      type: Number,
+      default: null,
+      min: 1,
+    },
+    maxParticipants: {
+      type: Number,
+      default: null,
+      min: 1,
+    },
+    visibility: {
+      type: String,
+      enum: ['public', 'private'],
+      default: 'public',
+    },
+    organizer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Organizer is required'],
     },
     status: {
       type: String,
       enum: ['draft', 'published', 'cancelled', 'completed'],
-      default: 'published',  // default published so events are immediately visible
+      default: 'published',
+    },
+    totalBookings: {
+      type: Number,
+      default: 0,
+    },
+    totalRevenue: {
+      type: Number,
+      default: 0,
     },
     isFeatured: {
       type: Boolean,
@@ -70,23 +165,38 @@ const eventSchema = new mongoose.Schema(
     tags: [{ type: String, trim: true }],
     totalCapacity: {
       type: Number,
-      required: [true, 'Total capacity is required'],
-      min: [1, 'Capacity must be at least 1'],
+      default: null,
+      min: 1,
     },
     soldCount: {
       type: Number,
       default: 0,
       min: 0,
     },
+    // Premium event detail fields
+    schedule: [scheduleItemSchema],
+    highlights: [highlightSchema],
+    facilities: [facilitySchema],
+    rules: [ruleSchema],
+    faqs: [faqSchema],
+    rating: {
+      average: { type: Number, default: 0, min: 0, max: 5 },
+      count: { type: Number, default: 0, min: 0 },
+    },
+    organizerDetails: {
+      logo: { type: String, default: null },
+      bio: { type: String, default: '', trim: true },
+      rating: { type: Number, default: 0, min: 0, max: 5 },
+      totalEvents: { type: Number, default: 0 },
+      followers: { type: Number, default: 0 },
+    },
   },
   { timestamps: true }
 );
 
-// ── Compound indexes for common filter queries ────────────────────────────────
 eventSchema.index({ startDate: 1, category: 1, status: 1 });
-eventSchema.index({ 'venue.city': 1 });
-eventSchema.index({ isFeatured: 1 });
 eventSchema.index({ organizer: 1 });
+eventSchema.index({ visibility: 1, status: 1 });
 
-const Event = mongoose.model('Event', eventSchema);// For testing purposes, we export the schema as well
+const Event = mongoose.model('Event', eventSchema);
 module.exports = Event;

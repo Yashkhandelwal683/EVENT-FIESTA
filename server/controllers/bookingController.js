@@ -8,6 +8,8 @@ const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 const { generateQR } = require('../services/qrService');
 const { sendBookingConfirmation, sendCancellationRequestToAdmin, sendCancellationApprovedEmail, sendCancellationRejectedEmail } = require('../services/emailService');
+const { createNotification } = require('./notificationController');
+const { invalidatePattern } = require('../config/redis');
 
 // ── POST /api/bookings ────────────────────────────────────────────────────────
 /**
@@ -87,6 +89,7 @@ const createBooking = async (req, res) => {
         {
           user: req.user.id,
           event: eventId,
+          organizer: event.organizer,
           tickets: bookingTicketLines,
           totalAmount,
           status: 'pending',
@@ -127,7 +130,36 @@ const createBooking = async (req, res) => {
           soldQuantity: ticket.soldQuantity,
         });
       }
+      // Notify event organizer
+      io.to(`event:${eventId}`).emit('booking:new', { eventId, bookingId: booking._id });
+
+      // Persistent notification to organizer
+      const eventDoc = await Event.findById(eventId).select('organizer title').lean();
+      if (eventDoc?.organizer) {
+        await createNotification(
+          eventDoc.organizer,
+          'new_booking',
+          'New Booking Received',
+          `A new booking for "${eventDoc.title}" — ₹${totalAmount.toLocaleString('en-IN')}`,
+          { bookingId: booking._id, eventId },
+          io
+        );
+      }
+
+      // Persistent notification to attendee
+      await createNotification(
+        req.user.id,
+        'new_booking',
+        'Booking Confirmed',
+        `Your booking for "${event.title}" has been created successfully`,
+        { bookingId: booking._id, eventId },
+        io
+      );
     }
+
+    await invalidatePattern('admin');
+    await invalidatePattern('org');
+    await invalidatePattern('attendee');
 
     res.status(201).json(new ApiResponse(201, booking, 'Booking created successfully'));
   } catch (err) {
@@ -247,7 +279,21 @@ const cancelBooking = async (req, res) => {
           });
         }
       }
+
+      // Persistent notification to user
+      await createNotification(
+        req.user.id,
+        'cancellation',
+        'Booking Cancelled',
+        `Your booking has been cancelled successfully`,
+        { bookingId: booking._id, eventId: booking.event },
+        io
+      );
     }
+
+    await invalidatePattern('admin');
+    await invalidatePattern('org');
+    await invalidatePattern('attendee');
 
     res.json(new ApiResponse(200, booking, 'Booking cancelled successfully'));
   } catch (err) {
@@ -309,6 +355,30 @@ const requestCancellation = async (req, res) => {
     console.error('⚠️  Failed to send cancellation request email to admin:', emailErr.message);
   }
 
+  // Socket.IO — notify admins
+  const io = req.app.get('io');
+  if (io) {
+    io.to('admin').emit('cancellation:request', {
+      bookingId: booking._id,
+      eventId: booking.event._id,
+      userId: req.user.id,
+      reason: cancellationReason,
+    });
+
+    // Persistent notification to all admins (find admin users)
+    const admins = await User.find({ role: 'admin' }).select('_id').lean();
+    for (const admin of admins) {
+      await createNotification(
+        admin._id,
+        'cancellation',
+        'Cancellation Requested',
+        `${booking.user.name} requested cancellation for "${booking.event.title}" — refund ₹${refundAmount.toLocaleString('en-IN')}`,
+        { bookingId: booking._id, eventId: booking.event._id },
+        io
+      );
+    }
+  }
+
   res.json(new ApiResponse(200, booking, 'Cancellation request submitted. Admin will review within 24 hours.'));
 };
 
@@ -335,6 +405,8 @@ const adminApproveCancellation = async (req, res) => {
     throw new ApiError(400, 'No pending cancellation request for this booking');
   }
 
+  const io = req.app.get('io');
+
   if (decision === 'approve') {
     booking.status                  = 'cancelled';
     booking.cancellationStatus      = 'approved';
@@ -356,6 +428,24 @@ const adminApproveCancellation = async (req, res) => {
     } catch (emailErr) {
       console.error('⚠️  Failed to send cancellation approved email:', emailErr.message);
     }
+
+    // Socket.IO — notify user
+    if (io) {
+      io.to(`user:${booking.user._id}`).emit('cancellation:decision', {
+        bookingId: booking._id,
+        decision: 'approved',
+        refundAmount: booking.refundAmount,
+      });
+
+      await createNotification(
+        booking.user._id,
+        'refund',
+        'Cancellation Approved',
+        `Your cancellation for "${booking.event.title}" has been approved. Refund: ₹${booking.refundAmount.toLocaleString('en-IN')}`,
+        { bookingId: booking._id, eventId: booking.event?._id },
+        io
+      );
+    }
   } else {
     booking.cancellationStatus = 'rejected';
     await booking.save();
@@ -371,6 +461,29 @@ const adminApproveCancellation = async (req, res) => {
     } catch (emailErr) {
       console.error('⚠️  Failed to send cancellation rejected email:', emailErr.message);
     }
+
+    // Socket.IO — notify user
+    if (io) {
+      io.to(`user:${booking.user._id}`).emit('cancellation:decision', {
+        bookingId: booking._id,
+        decision: 'rejected',
+        reason: reason || 'Request reviewed and denied by admin',
+      });
+
+      await createNotification(
+        booking.user._id,
+        'cancellation',
+        'Cancellation Rejected',
+        `Your cancellation request for "${booking.event.title}" has been rejected`,
+        { bookingId: booking._id, eventId: booking.event?._id },
+        io
+      );
+    }
+  }
+
+  // Socket.IO — notify admin room that decision was made
+  if (io) {
+    io.to('admin').emit('cancellation:resolved', { bookingId: booking._id, decision });
   }
 
   res.json(new ApiResponse(200, booking,
