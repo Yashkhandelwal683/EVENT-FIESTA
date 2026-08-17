@@ -191,10 +191,13 @@ const createOrder = async (req, res) => {
   }
 
   let razorpayOrder;
+  const amountPaise = Math.round(totalAmount * 100);
+  if (amountPaise < 100)
+    throw new ApiError(400, 'Minimum payment amount is ₹1');
   try {
     const rz = getRazorpay();
     razorpayOrder = await rz.orders.create({
-      amount: Math.round(totalAmount * 100),
+      amount: amountPaise,
       currency: 'INR',
       receipt: booking.bookingRef,
       notes: { bookingId: booking._id.toString(), userId: req.user.id },

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import axiosClient from '../../api/axiosClient';
 import { motion } from 'framer-motion';
 import AdminWelcomeHero from '../../components/admin/AdminWelcomeHero';
@@ -9,6 +9,7 @@ import AdminRevenueChart from '../../components/admin/AdminRevenueChart';
 import AdminSystemHealth from '../../components/admin/AdminSystemHealth';
 import AdminRightPanel from '../../components/admin/AdminRightPanel';
 import Spinner from '../../components/ui/Spinner';
+import { useAdminDashboardStore } from '../../store/adminDashboardStore';
 import {
   Users, UserCheck, Calendar, Ticket, DollarSign, TrendingUp,
   Clock, Zap,
@@ -18,19 +19,32 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const refreshVersion = useAdminDashboardStore((s) => s.refreshVersion);
 
-  useEffect(() => {
-    Promise.allSettled([
+  const fetchData = useCallback(async () => {
+    const [statsRes, approvalsRes] = await Promise.allSettled([
       axiosClient.get('/api/admin/stats'),
       axiosClient.get('/api/admin/organizer-approvals'),
-    ]).then(([statsRes, approvalsRes]) => {
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value?.data?.data ?? statsRes.value?.data);
-      if (approvalsRes.status === 'fulfilled') {
-        const d = approvalsRes.value?.data;
-        setApprovals(d?.data || d?.organizers || d || []);
-      }
-    }).catch(() => {}).finally(() => setLoading(false));
+    ]);
+    const stats = statsRes.status === 'fulfilled'
+      ? (statsRes.value?.data?.data ?? statsRes.value?.data)
+      : null;
+    const approvals = approvalsRes.status === 'fulfilled'
+      ? (approvalsRes.value?.data?.data || approvalsRes.value?.data?.organizers || approvalsRes.value?.data || [])
+      : null;
+    return { stats, approvals };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchData().then(({ stats, approvals }) => {
+      if (cancelled) return;
+      if (stats !== null) setStats(stats);
+      if (approvals !== null) setApprovals(approvals);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [fetchData, refreshVersion]);
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>;
 

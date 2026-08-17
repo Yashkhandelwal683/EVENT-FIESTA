@@ -138,7 +138,9 @@ function CreateEventInner() {
 
   const handleAutoSave = useCallback(async () => {
     if (!formData.title?.trim()) return;
+    if (!formData.description?.trim()) return;
     if (!formData.category) return;
+    if (!formData.startDate) return;
     if (!formData.eventType) return;
     try {
       if (draftEventId.current) {

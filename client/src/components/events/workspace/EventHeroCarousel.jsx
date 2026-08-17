@@ -112,7 +112,10 @@ export default function EventHeroCarousel({ event, stats, navigate }) {
     });
   };
 
-  const handleMouseLeave = () => setMousePos({ x: 0, y: 0 });
+  const handleMouseLeave = () => {
+    setMousePos({ x: 0, y: 0 });
+    setIsPaused(false);
+  };
 
   const capacitySold = (stats.totalPaid || 0) + (stats.totalPending || 0);
   const capacityTotal = event.maxParticipants || 100;
@@ -134,7 +137,6 @@ export default function EventHeroCarousel({ event, stats, navigate }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={() => setIsPaused(true)}
-      onMouseLeaveCapture={() => setIsPaused(false)}
     >
       {/* Background Images / Ken Burns */}
       {hasImages ? (

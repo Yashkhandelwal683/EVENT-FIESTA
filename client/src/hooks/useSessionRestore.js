@@ -34,6 +34,7 @@ export function useSessionRestore() {
             role:      raw.role,
             avatar:    raw.avatar ?? null,
             phone:     raw.phone ?? '',
+            bio:       raw.bio ?? '',
             college:   raw.college ?? '',
             department: raw.department ?? '',
             gender:    raw.gender ?? '',

@@ -46,6 +46,11 @@ const errorHandler = (err, req, res, _next) => {
     console.error('🔥  Server Error:', err);
   }
 
+  // TEMP-DIAG: log validation failures with the offending body/fields
+  if (statusCode === 422) {
+    console.error('⚠️  422 on', req.method, req.originalUrl, JSON.stringify(err.errors || err.message));
+  }
+
   res.status(statusCode).json({
     success: false,
     message,

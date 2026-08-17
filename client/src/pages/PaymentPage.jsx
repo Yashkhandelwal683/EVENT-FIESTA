@@ -7,6 +7,7 @@ import useRegistrationStore from '../store/registrationStore';
 import Button from '../components/ui/Button';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatDateTime } from '../utils/formatDate';
+import loadRazorpay from '../utils/loadRazorpay';
 import {
   CreditCardIcon, CheckCircleIcon, XCircleIcon,
   ArrowPathIcon, ShieldCheckIcon, TicketIcon,
@@ -148,11 +149,12 @@ export default function PaymentPage() {
     setError(null);
 
     try {
+      await loadRazorpay();
       const orderResult = await createOrder({ eventId, tickets: effectiveTickets, attendeeInfo: effectiveAttendeeInfo }).unwrap();
 
       if (window.Razorpay) {
         const options = {
-          key: orderResult.key,
+          key: orderResult.keyId,
           amount: orderResult.amount,
           currency: orderResult.currency || 'INR',
           name: 'Event Fiesta',

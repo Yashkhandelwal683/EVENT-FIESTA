@@ -1,7 +1,15 @@
 const User = require('../models/User');
+const AnalyticsSnapshot = require('../models/AnalyticsSnapshot');
+const { invalidatePattern } = require('../config/redis');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const mongoose = require('mongoose');
+
+/** Force the next /api/admin/stats request to recompute from the live DB */
+const invalidateAdminStatsCache = async () => {
+  await AnalyticsSnapshot.deleteOne({ type: 'admin_stats', scope: 'global' });
+  await invalidatePattern('admin');
+};
 
 exports.getOrganizerRequests = async (req, res, next) => {
   try {
@@ -39,6 +47,8 @@ exports.approveOrganizer = async (req, res, next) => {
     user.approvedAt = new Date();
     user.rejectedReason = '';
     await user.save({ validateBeforeSave: false });
+
+    await invalidateAdminStatsCache();
 
     const Notification = require('../models/Notification');
     const notification = await Notification.create({
@@ -81,6 +91,8 @@ exports.rejectOrganizer = async (req, res, next) => {
     user.approvalStatus = 'rejected';
     user.rejectedReason = reason || 'Your application was rejected. Please contact support for more information.';
     await user.save({ validateBeforeSave: false });
+
+    await invalidateAdminStatsCache();
 
     const Notification = require('../models/Notification');
     const notification = await Notification.create({

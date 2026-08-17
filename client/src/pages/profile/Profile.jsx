@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { profileSchema } from '../../utils/validators';
@@ -47,10 +47,43 @@ export default function Profile() {
     : bookingsData?.bookings ?? [];
 
   // ── Profile form ───────────────────────────────────────────────────────────
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(profileSchema),
     defaultValues: { name: user?.name ?? '', phone: user?.phone ?? '', bio: user?.bio ?? '' },
   });
+
+  // Always read the persisted profile when this page opens, so the form is
+  // correct after navigation, a browser refresh, or a new session.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        const { data } = await axiosClient.get('/api/users/profile', {
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        });
+        const raw = data?.data ?? data;
+        if (cancelled || !(raw?._id || raw?.id)) return;
+
+        const savedUser = {
+          id: raw._id ?? raw.id,
+          name: raw.name,
+          email: raw.email,
+          role: raw.role,
+          avatar: raw.avatar ?? null,
+          phone: raw.phone ?? '',
+          bio: raw.bio ?? '',
+        };
+        dispatch(setCredentials({ user: savedUser }));
+        reset({ name: savedUser.name, phone: savedUser.phone, bio: savedUser.bio });
+      } catch {
+        // Keep the locally stored values available if the profile cannot load.
+      }
+    };
+
+    loadProfile();
+    return () => { cancelled = true; };
+  }, [dispatch, reset]);
 
   const onSave = async (values) => {
     setSaving(true);
@@ -63,8 +96,11 @@ export default function Profile() {
         email:  raw.email,
         role:   raw.role,
         avatar: raw.avatar ?? null,
+        phone:  raw.phone ?? '',
+        bio:    raw.bio ?? '',
       };
       dispatch(setCredentials({ user: updatedUser }));
+      reset({ name: updatedUser.name, phone: updatedUser.phone, bio: updatedUser.bio });
       toast.success('Profile updated!');
     } catch {
       toast.error('Failed to update profile.');

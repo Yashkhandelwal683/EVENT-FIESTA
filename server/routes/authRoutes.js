@@ -44,15 +44,17 @@ const validateOAuthEnvironment = (req, res, next) => {
 
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 // GET /api/auth/google — stores role in cookie, then redirects to Google
-router.get(
-  '/google',
-  (req, res, next) => {
-    const role = req.query.state === 'organizer' ? 'organizer' : 'attendee';
-    res.cookie('oauth_role', role, { maxAge: 10 * 60 * 1000, sameSite: 'lax' });
-    next();
-  },
-  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
-);
+router.get('/google', (req, res, next) => {
+  const role = req.query.state === 'organizer' ? 'organizer' : 'attendee';
+  res.cookie('oauth_role', role, { maxAge: 10 * 60 * 1000, sameSite: 'lax' });
+
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    const failureUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=google_not_configured`;
+    return res.redirect(failureUrl);
+  }
+
+  next();
+}, passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 
 // GET /api/auth/google/callback
 // ✅ Dynamic redirect instead of hardcoded template literal

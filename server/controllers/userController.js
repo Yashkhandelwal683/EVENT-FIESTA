@@ -18,12 +18,40 @@ const getProfile = async (req, res) => {
 
 // ── PATCH /api/users/profile ──────────────────────────────────────────────────
 const updateProfile = async (req, res) => {
-  const allowedFields = ['name'];
+  // Top-level editable scalar fields
+  const allowedFields = [
+    'name', 'phone', 'bio',
+    'organizationName', 'organizationType', 'gstNumber', 'panNumber',
+    'website', 'aboutOrganization', 'city', 'address', 'state', 'country',
+  ];
   const updates = {};
 
   allowedFields.forEach((field) => {
-    if (req.body[field] !== undefined) updates[field] = req.body[field];
+    if (req.body[field] !== undefined) {
+      updates[field] = typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field];
+    }
   });
+
+  // Nested objects (social links, bank details)
+  if (req.body.social && typeof req.body.social === 'object') {
+    const social = {};
+    ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube'].forEach((k) => {
+      if (req.body.social[k] !== undefined) {
+        social[k] = typeof req.body.social[k] === 'string' ? req.body.social[k].trim() : req.body.social[k];
+      }
+    });
+    if (Object.keys(social).length) updates.social = social;
+  }
+
+  if (req.body.bank && typeof req.body.bank === 'object') {
+    const bank = {};
+    ['accountHolder', 'bankName', 'accountNumber', 'ifsc', 'upi', 'accountType'].forEach((k) => {
+      if (req.body.bank[k] !== undefined) {
+        bank[k] = typeof req.body.bank[k] === 'string' ? req.body.bank[k].trim() : req.body.bank[k];
+      }
+    });
+    if (Object.keys(bank).length) updates.bank = bank;
+  }
 
   const user = await User.findByIdAndUpdate(req.user.id, updates, {
     new: true,

@@ -7,6 +7,7 @@ import { eventsApi } from '../features/events/eventsApi';
 import { bookingsApi } from '../features/bookings/bookingsApi';
 import { notificationsApi } from '../features/notifications/notificationsApi';
 import { useNotificationStore } from '../store/notificationStore';
+import { useAdminDashboardStore } from '../store/adminDashboardStore';
 
 export function useSocket() {
   const dispatch = useDispatch();
@@ -79,6 +80,7 @@ export function useSocket() {
       toast(`${name} ${status === 'approved' ? 'approved' : 'rejected'} as organizer`, {
         icon: status === 'approved' ? '✅' : '❌',
       });
+      useAdminDashboardStore.getState().bumpRefresh();
     });
 
     socket.on('payment:confirmed', ({ bookingId, amount }) => {

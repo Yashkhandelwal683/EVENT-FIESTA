@@ -16,9 +16,10 @@ exports.getDashboard = async (req, res, next) => {
     const oid = req.user.id;
 
     const data = await getOrSet(`org:dashboard:${oid}`, async () => {
-      const snapshot = await AnalyticsSnapshot.findOne({ type: 'organizer_dashboard', scope: oid }).sort({ date: -1 }).lean();
-      if (snapshot && snapshot.data) return snapshot.data;
-
+      // Always compute live data. The AnalyticsSnapshot is only written here (and by the
+      // scheduled analytics job) as a persisted copy; we never serve it directly, because
+      // doing so would return stale numbers (e.g. totalEvents: 0) until the next job run,
+      // breaking real-time refresh after an organizer creates/edits an event or gets a booking.
       const objectId = new mongoose.Types.ObjectId(oid);
       const today = new Date();
       today.setHours(0, 0, 0, 0);

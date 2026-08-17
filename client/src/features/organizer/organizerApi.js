@@ -12,7 +12,7 @@ export const organizerApi = createApi({
       query: () => '/dashboard',
       keepUnusedDataFor: 1800,
       refetchOnMountOrArgChange: true,
-      providesTags: ['Dashboard'],
+      providesTags: ['Dashboard', 'Event'],
     }),
     getEvents: build.query({
       query: (params) => ({ url: '/events', params }),
